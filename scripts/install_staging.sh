@@ -82,7 +82,6 @@ setup_environment() {
         btcli wallet new_hotkey --wallet.name validator --wallet.hotkey default --no_prompt
         touch .wallets_setup
     fi
-
 }
 
 # Call setup_environment every time
