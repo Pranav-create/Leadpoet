@@ -151,7 +151,6 @@ Logs show validation results and reward assignments.
 - Correct validation: +10 (`O_v` within 10% of final score)
 - Incorrect validation: –15 (if invalid leads slip through)
 - Buyer feedback: up to +15 or –25
-- Dummy audit failure: –10
 
 **Consistency (C_v)**: Reflects how often validator score `O_v` is close to final `F`:
 - Recent (previous 14 days): 55% weight
