@@ -63,7 +63,7 @@ Then register with:
 ### Lead Generation & Monitoring
 Run your miner:
 ```bash
-leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
+leadpoet --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey> --netuid 343
 ```
 Add `--use_open_source_lead_model` to use Leadpoet's open-source miner framework (optional). The miner framework requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
 
@@ -117,7 +117,7 @@ Then register with:
 ### Running a Validator
 
 ```bash
-leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
+leadpoet-validate --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey> --netuid 343
 ```
 Add `--use_open_source_validator_model` to use Leadpoet's open-source validation framework (optional).
 
@@ -179,7 +179,7 @@ Buyers request leads via the API and receive curated batches that have been vali
 
 Start the API server:
 ```bash
-leadpoet-api --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
+leadpoet-api --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey> --netuid 343
 ```
 
 Request leads (runs on http://localhost:5003 by default):
@@ -238,17 +238,17 @@ Test the subnet locally without connecting to the Bittensor network:
 
 **Miner**:
 ```bash
-leadpoet --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
+leadpoet --mock --wallet.name <your_mock_coldkey> --wallet.hotkey <your_mock_hotkey> --netuid 343
 ```
 
 **Validator**:
 ```bash
-leadpoet-validate --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
+leadpoet-validate --mock --wallet.name <your_mock_coldkey> --wallet.hotkey <your_mock_hotkey> --netuid 343
 ```
 
 **API**:
 ```bash
-leadpoet-api --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
+leadpoet-api --mock --wallet.name <your_mock_coldkey> --wallet.hotkey <your_mock_hotkey> --netuid 343
 ```
 
 Note: Uses dummy data and a mock subtensor.
