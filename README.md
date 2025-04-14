@@ -282,7 +282,7 @@ Note: Uses dummy data and a mock subtensor.
 
 ## Support
 
-- **Email**: [support@leadpoet.com](mailto:support@leadpoet.com)
+- **Email**: [hello@leadpoet.com](mailto:hello@leadpoet.com)
 - **Issues**: GitHub Issues
 
 ## License
