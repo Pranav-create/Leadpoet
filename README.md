@@ -72,17 +72,17 @@ btcli stake --amount 8 --wallet.name your_wallet_name --wallet.hotkey your_hotke
 
 Start your miner with:
 ```bash
-leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 33
+leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
 Replace `your_wallet_name` and `your_hotkey_name` with your wallet credentials.
 
-`--netuid 33` specifies the LeadPoet subnet; adjust if different.
+`--netuid 343` specifies the LeadPoet subnet; adjust if different.
 
 **Enable Open-Source Lead Generation (Optional)**:
 
 To generate real leads instead of dummy data:
 ```bash
-leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 33 --use_open_source_lead_model
+leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343 --use_open_source_lead_model
 ```
 Requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
 
@@ -148,14 +148,14 @@ Register your wallet and stake sufficient TAO (amount varies; aim for competitiv
 
 Start your validator with:
 ```bash
-leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 33
+leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
 
 **Enable Open-Source Validation (Optional)**:
 
 Use the open-source validation model:
 ```bash
-leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 33 --use_open_source_validator_model
+leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343 --use_open_source_validator_model
 ```
 
 **Monitor Your Validator**:
@@ -204,7 +204,7 @@ Planned at leadpoet.com with USD/TAO payment options.
 
 Start the API server:
 ```bash
-leadpoet-api --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 33
+leadpoet-api --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
 
 Request leads (runs on http://localhost:5003 by default):
@@ -259,17 +259,17 @@ Test the subnet locally without connecting to the Bittensor network:
 
 **Miner**:
 ```bash
-leadpoet --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 33
+leadpoet --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
 ```
 
 **Validator**:
 ```bash
-leadpoet-validate --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 33
+leadpoet-validate --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
 ```
 
 **API**:
 ```bash
-leadpoet-api --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 33
+leadpoet-api --mock --wallet.name mock_wallet --wallet.hotkey mock_hotkey --netuid 343
 ```
 
 Note: Uses dummy data and a mock subtensor.
