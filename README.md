@@ -140,16 +140,16 @@ Logs show validation results and reward assignments.
 
 **Outcome**: Approve batches only if ≥90% of sampled leads meet format, accuracy, and relevance checks. Otherwise, the batch is rejected with penalty.
 
-**Automated Subnet Checks**: After a Final Output Score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+**Automated Subnet Checks**: After a final score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
 
 - Invalid Lead Check: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to `F` = 0.
 - Collusion Check: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
 
 ### Validator Incentives
 
-**Final Output Score (F)**: Each validator's `v` score `O_v` is weighted by their reputation `R_v`.  
+**Final score (F)**: Each validator's `v` score `O_v` is weighted by their reputation `R_v`.  
 - `F = ∑ [ O_v × ( R_v / Rs_total ) ]` where `Rs_total = ∑ R_v` across all validators `v` with `R_v > 15`.
-- The lead list with the highest Final Output Score is sent to the buyer.
+- The lead list with the highest final score is sent to the buyer.
 
 **Precision (P_v)**: Reflects validator `v` accuracy over time. Adjusted based on:
 - Correct validation: +10 (`O_v` within 10% of final score)
@@ -167,6 +167,8 @@ Logs show validation results and reward assignments.
 **Rewards (V_v)**: Reflects validator `v` proportional share of total validator emissions `V`:
 - Only validators with `R_v > 15` are eligible to receive emissions
 - `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15`
+
+**Best Practices**: Maintain high scoring precision, ensure consistency with the final score `F`, and avoid false positives to maximize rewards and reputation.
 
 
 ## For Buyers
@@ -213,7 +215,7 @@ Response example:
 
 
 ## Automated Subnet Checks
-After a Final Output Score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+After a final score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
 
 - **Invalid Lead Check**: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to `F` = 0.
 - **Collusion Check**: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score `V_c` is generated. 
