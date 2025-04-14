@@ -14,6 +14,9 @@ LeadPoet transforms lead generation through Bittensor’s decentralized architec
 
 **Token**: TAO is used for staking, rewards, and (future) lead purchases.
 
+> 🧪 *Leadpoet is currently live on testnet as we refine validation and incentive mechanisms ahead of mainnet launch.*
+
+
 ## Getting Started
 
 ### Prerequisites
@@ -106,6 +109,7 @@ Miner performance is continuously evaluated to ensure that buyers receive high-q
 
 **Best Practices**: Focus on accurate contact data, align with requested industry and region, and maintain high uptime to improve performance scores and maximize rewards.
 
+
 ## For Validators
 
 ### Participation Requirements
@@ -136,9 +140,9 @@ Logs show validation results and reward assignments.
 
 **Outcome**: Approve batches only if ≥90% of sampled leads meet format, accuracy, and relevance checks. Otherwise, the batch is rejected with penalty.
 
-**Automated Subnet Checks**: After a Final Output Score above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+**Automated Subnet Checks**: After a Final Output Score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
 
-- Invalid Lead Check: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to F = 0.
+- Invalid Lead Check: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to `F` = 0.
 - Collusion Check: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
 
 ### Validator Incentives
@@ -163,6 +167,7 @@ Logs show validation results and reward assignments.
 **Rewards (V_v)**: Reflects validator `v` proportional share of total validator emissions `V`:
 - Only validators with `R_v > 15` are eligible to receive emissions
 - `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15`
+
 
 ## For Buyers
 
@@ -206,12 +211,14 @@ Response example:
 ]
 ```
 
+
 ## Automated Subnet Checks
 After a Final Output Score above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
 
 - **Invalid Lead Check**: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to F = 0.
 - **Collusion Check**: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. 
 - **Collusion Flag**: If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
+
 
 ## Technical Details
 
@@ -227,8 +234,8 @@ After a Final Output Score above 0.5 is assigned, the subnet runs post-validatio
 
 ### Open-Source Frameworks
 
-- **Lead Generation** (miner_models/get_leads.py): Fetches real leads using Hunter.io/Clearbit. Enable with --use_open_source_lead_model.
-- **Validation** (validator_models/os_validator_model.py): Checks email validity, website reachability. Enable with --use_open_source_validator_model.
+- **Lead Generation** (miner_models/get_leads.py): Fetches real leads using Hunter.io/Clearbit. Enable with `--use_open_source_lead_model`.
+- **Validation** (validator_models/os_validator_model.py): Checks email validity, website reachability. Enable with `--use_open_source_validator_model`.
 
 **API Keys**: Set HUNTER_API_KEY and CLEARBIT_API_KEY for full functionality.
 
@@ -255,14 +262,15 @@ Note: Uses dummy data and a mock subtensor.
 
 ## Roadmap
 
-- **MVP**: Core lead generation, validation, and API access
+- **MVP (Testnet)**: Core lead generation, validation, and API access (currently live)
 - **Next**: Governance voting, compliance auditing, trusted validator thresholds
 - **Future**: Sharding, mainnet launch, and a UI at leadpoet.com for lead querying, purchase, and feedback
 
 ## Support
 
 - **Email**: [hello@leadpoet.com](mailto:hello@leadpoet.com)
-- **Issues**: GitHub Issues
+- **Website**: [https://leadpoet.com](https://leadpoet.com)
+- **Issues**: [Open an issue on GitHub](https://github.com/Pranav-create/Leadpoet/issues)
 
 ## License
 
