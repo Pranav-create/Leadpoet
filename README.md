@@ -32,7 +32,7 @@ pip install bittensor
 **Clone the Repository**:
 ```bash
 git clone https://github.com/Pranav-create/Leadpoet
-cd leadpoet-subnet
+cd Leadpoet
 ```
 
 **Install the LeadPoet Package**:
