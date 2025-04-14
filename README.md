@@ -1,4 +1,4 @@
-# LeadPoet | Bittensor-Powered Lead Gen
+# Leadpoet | Premium Sales Leads. Powered by Bittensor.
 
 Welcome to LeadPoet, a decentralized lead generation subnet built on Bittensor—tailored for SaaS, finance, healthcare, e-commerce, and B2B agencies seeking accurate, high-conversion sales leads.
 
