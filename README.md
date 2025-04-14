@@ -213,11 +213,11 @@ Response example:
 
 
 ## Automated Subnet Checks
-After a Final Output Score above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+After a Final Output Score `F` above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
 
-- **Invalid Lead Check**: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to F = 0.
-- **Collusion Check**: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. 
-- **Collusion Flag**: If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
+- **Invalid Lead Check**: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to `F` = 0.
+- **Collusion Check**: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score `V_c` is generated. 
+- **Collusion Flag**: If `V_c` ≥ 0.7, the validator is flagged for collusion. `F_v` is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
 
 
 ## Technical Details
