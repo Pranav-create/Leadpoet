@@ -161,7 +161,6 @@ Logs show validation results and reward assignments.
 **Weighted Reputation (R_v)**: `R_v = P_v \times C_v \times F_v`.
 - Where `F_v = 1` unless the validator is flagged for collusion (then `F_v = 0`)
 
-
 **Rewards (V_v)**: Reflects validator `v` proportional share of total validator emissions `V`:
 - Only validators with `R_v > 15` are eligible to receive emissions
 - `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15`
@@ -219,7 +218,7 @@ After a Final Output Score above 0.5 is assigned, the subnet runs post-validatio
 
 ### Architecture
 
-- **Miners**: Respond to validator or buyer queries with JSON-formatted lead batches (via neurons/miner.py).
+- **Miners**: Respond to buyer queries with JSON-formatted lead batches (via neurons/miner.py).
 - **Validators**: Query miners, validate leads using validator_models/os_validator_model.py and automated_checks.py, assign rewards (via neurons/validator.py).
 - **Buyers**: Use Leadpoet/api/leadpoet_api.py to query lead batches.
 
@@ -227,11 +226,10 @@ After a Final Output Score above 0.5 is assigned, the subnet runs post-validatio
 
 - **POST /generate_leads**: Request leads with num_leads (1-100), optional industry and region.
 
-### Open-Source Models
+### Open-Source Frameworks
 
 - **Lead Generation** (miner_models/get_leads.py): Fetches real leads using Hunter.io/Clearbit. Enable with --use_open_source_lead_model.
 - **Validation** (validator_models/os_validator_model.py): Checks email validity, website reachability. Enable with --use_open_source_validator_model.
-- **Automated Checks** (validator_models/automated_checks.py): Post-approval verification of emails and domains.
 
 **API Keys**: Set HUNTER_API_KEY and CLEARBIT_API_KEY for full functionality.
 
