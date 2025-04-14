@@ -44,9 +44,7 @@ Note: This installs all dependencies listed in setup.py, including bittensor, re
 
 **Configure Your Wallet**: Use (`btcli wallet create`) to create a TAO wallet and stake sufficient TAO.
 
-**Set API Keys (Optional for Miners)**:
-
-To enable real lead generation using Hunter.io and Clearbit, set these environment variables:
+**Set API Keys (Optional for Miners)**: To enable real lead generation using Hunter.io and Clearbit, set these environment variables:
 ```bash
 export HUNTER_API_KEY=your_hunter_api_key
 export CLEARBIT_API_KEY=your_clearbit_api_key
@@ -57,22 +55,21 @@ These are utilized in miner_models/get_leads.py for determining lead authenticit
 ## For Miners
 
 ### Participation Requirements
-Miners must stake at least 2 TAO to begin submitting leads: 
-Use (`btcli stake --amount 2 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
-
-Miners must register as a miner to respond to queries: 
-Use (`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
+Miners must stake at least 2 TAO and register on the subnet to begin submitting leads:
+Use `btcli stake --amount 2 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`  
+Then register with:  
+`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`
 
 ### Lead Generation & Monitoring
 Run your miner:
 ```bash
 leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
-Add (`--use_open_source_lead_model`) to use Leadpoet's open-source miner framework (optional). The miner framework requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
+Add `--use_open_source_lead_model` to use Leadpoet's open-source miner framework (optional). The miner framework requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
 
 Miners respond to buyer queries with lead batches. Logs show validator activity, query details, and maximum response times (must be within 2 minutes + 2 seconds per lead).
 
-### Lead Format (JSON):
+### Lead Format:
 Leads must follow the structured JSON format below:
 
 ```json
@@ -92,37 +89,37 @@ Leads must follow the structured JSON format below:
 
 Miner performance is continuously evaluated to ensure that buyers receive high-quality, conversion-ready leads.
 
-**Accuracy Score (A_m)**: Reflects miner (m) quality of submitted leads over time:
+**Accuracy Score (A_m)**: Reflects miner `m` quality of submitted leads over time:
 - Recent (previous 14 days): 55% weight
 - Mid-term (previous 30 days): 25% weight
 - Long-term (previous 90 days): 20% weight
 
-**Dependability (D_m)**: Reflects miner (m) reliability:
+**Dependability (D_m)**: Reflects miner `m` reliability:
 - Based on uptime: # of buyer queries responded to with valid leads divided by total # of received queries.
 - Weighted by same 14/30/90-day proportions
 
 **Miner Weight (W_m)**: `W_m = A_m × D_m`
 
-**Rewards (M_m)**: Proportional share of total miner emissions:
-- Only miners with `A_m > 0.5` receive emissions
-- `M_m = M × (W_m / Σ W_m)` where `M` is total miner emissions
+**Rewards (M_m)**: Reflects miner `m` proportional share of total miner emissions `M`:
+- Only miners with `A_m > 0.5` are eligible to receive emissions
+- `M_m = M × ( W_m / Σ W_m )` for all miners with `A_m > 0.5`
 
 **Best Practices**: Focus on accurate contact data, align with requested industry and region, and maintain high uptime to improve performance scores and maximize rewards.
 
 ## For Validators
 
 ### Participation Requirements
-Validators must stake at least 20 TAO to begin scoring leads: 
-Use (`btcli stake --amount 20 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
-Validators must register to score leads: 
-Use (`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
+Validators must stake at least 20 TAO and register on the subnet to begin scoring leads:  
+Use `btcli stake --amount 20 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`  
+Then register with:  
+`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`
 
 ### Running a Validator
 
 ```bash
 leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
-Add (`--use_open_source_validator_model`) to use Leadpoet's open-source validation framework (optional).
+Add `--use_open_source_validator_model` to use Leadpoet's open-source validation framework (optional).
 
 **Monitor Your Validator**:
 
@@ -132,50 +129,53 @@ Logs show validation results and reward assignments.
 
 ### Validation Process
 
-**Pre-Check (~30s)**: Automated script checks format, duplicates (via validator_models/automated_checks.py).
-
-**Audit (~2 min)**: Sample percentage dynamically adjusts based on miner accuracy—ranging from 10% for high performers to 50% for low performers. For example, mid-range miners may have 30 out of 100 leads sampled.
+**Audit**: Sample percentage dynamically adjusts based on miner accuracy—ranging from 10% for high performers to 50% for low performers. For example, mid-range miners may have 30 out of 100 leads sampled.
 - Relevance: Matches industry/region filters.
 - Format: Regex (`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`) and email existence.
 - Accuracy: Checks for disposable domains and fakes.
 
 **Outcome**: Approve batches only if ≥90% of sampled leads meet format, accuracy, and relevance checks. Otherwise, the batch is rejected with penalty.
 
+**Automated Subnet Checks**: After a Final Output Score above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+
+- Invalid Lead Check: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to F = 0.
+- Collusion Check: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
+
 ### Validator Incentives
 
-**Final Output Score (F)**: Each validator’s `O_v` score is weighted by their Reputation (R_v > 15).  
-`F` = ∑ [O_v × (R_v / Rs_total)]
-Where `Rs_total = ∑ R_v` across all validators with `R_v > 15`.
-The lead list with the highest Final Output Score is sent to the buyer.
+**Final Output Score (F)**: Each validator's `v` score `O_v` is weighted by their reputation `R_v`.  
+- `F = ∑ [ O_v × ( R_v / Rs_total ) ]` where `Rs_total = ∑ R_v` across all validators `v` with `R_v > 15`.
+- The lead list with the highest Final Output Score is sent to the buyer.
 
-**Precision (P_v)**: Reflects validation accuracy over time. Adjusted based on:
+**Precision (P_v)**: Reflects validator `v` accuracy over time. Adjusted based on:
 - Correct validation: +10 (`O_v` within 10% of final score)
 - Incorrect validation: –15 (if invalid leads slip through)
 - Buyer feedback: up to +15 or –25
 - Dummy audit failure: –10
 
-**Consistency (C_v)**: Reflects how often `O_v` is close to final `F`:
+**Consistency (C_v)**: Reflects how often validator score `O_v` is close to final `F`:
 - Recent (previous 14 days): 55% weight
 - Mid-term (previous 30 days): 25% weight
 - Long-term (previous 90 days): 20% weight
 
 **Weighted Reputation (R_v)**: `R_v = P_v \times C_v \times F_v`.
-- Where `F_v = 1` unless the validator is flagged for collusion (then `F_v = 0`).
+- Where `F_v = 1` unless the validator is flagged for collusion (then `F_v = 0`)
 
 
-**Rewards (V_v)**: Validators with `R_v > 15` receive a proportional share of validator emissions:
-- `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15` where `V` is total validator emissions
+**Rewards (V_v)**: Reflects validator `v` proportional share of total validator emissions `V`:
+- Only validators with `R_v > 15` are eligible to receive emissions
+- `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15`
 
 ## For Buyers
 
 ### Participation Requirements
 
-Buyers must stake at least 50 TAO to begin requesting leads: 
-Use (`btcli stake --amount 50 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
+Buyers must stake at least 50 TAO to begin requesting leads:
+Use `btcli stake --amount 50 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`
 
 ### Accessing Leads
 
-Buyers request leads via the API and receive curated batches that have been validated for format, accuracy, and business relevance by the network. This ensures a higher likelihood of conversion compared to static lead databases or outdated directories. All leads are validated to ensure freshness, accuracy, and alignment with buyer targeting criteria.
+Buyers request leads via the API and receive curated batches that have been validated for format, accuracy, and business relevance by the network. This ensures a higher likelihood of conversion compared to static lead databases or outdated directories. All leads are validated for freshness, accuracy, and buyer fit.
 
 **Via API**:
 
@@ -208,13 +208,18 @@ Response example:
 ]
 ```
 
-Note: Lead quality is maintained through continuous validator scoring and performance audits of miner submissions.
+## Automated Subnet Checks
+After a Final Output Score above 0.5 is assigned, the subnet runs post-validation checks on each lead batch:
+
+- **Invalid Lead Check**: Duplicates, invalid contacts, or incorrect formats reset the batch’s score to F = 0.
+- **Collusion Check**: Buyer feedback and validator scoring patterns are analyzed using PyGOD and DBScan to detect manipulation. A Collusion Score (V_c) is generated. 
+- **Collusion Flag**: If V_c ≥ 0.7, the validator is flagged for collusion. R_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
 
 ## Technical Details
 
 ### Architecture
 
-- **Miners**: Respond to buyer queries with lead batches (via neurons/miner.py).
+- **Miners**: Respond to validator or buyer queries with JSON-formatted lead batches (via neurons/miner.py).
 - **Validators**: Query miners, validate leads using validator_models/os_validator_model.py and automated_checks.py, assign rewards (via neurons/validator.py).
 - **Buyers**: Use Leadpoet/api/leadpoet_api.py to query lead batches.
 
