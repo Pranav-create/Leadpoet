@@ -1,16 +1,16 @@
 # LeadPoet | Bittensor-Powered Lead Gen
 
-Welcome to LeadPoet, a Bittensor subnet designed to create a decentralized, privacy-compliant lead generation network. Miners generate and provide lead batches, validators ensure their quality, and buyers access high-quality leads via an API—all powered by the TAO token ecosystem.
+Welcome to LeadPoet, a decentralized lead generation subnet built on Bittensor—tailored for SaaS, finance, healthcare, e-commerce, and B2B agencies seeking accurate, high-conversion sales leads.
 
 ## Overview
 
-LeadPoet leverages Bittensor's decentralized architecture to deliver a scalable, incentivized lead marketplace. Miners earn TAO rewards for providing high-quality leads, validators maintain network integrity by auditing lead batches, and buyers access tailored leads for sales and marketing purposes.
+LeadPoet transforms lead generation through Bittensor’s decentralized architecture, incentivizing contributors to generate, validate, and deliver high-conversion leads in a scalable marketplace. Miners earn rewards for providing high-quality lead batches, validators earn rewards for maintaining network integrity by auditing lead quality, and buyers access curated, real-time leads optimized for conversion, eliminating reliance on static databases. Decentralization ensures cost efficiency, quality validation, and competitive sourcing—delivering fresher, more relevant leads to buyers.
 
 - **Miners**: Run neurons that generate batches of leads in response to validator queries or buyer requests.
 - **Validators**: Query miners, validate lead quality, and assign rewards based on accuracy and relevance.
 - **Buyers**: Request leads via the API, receiving curated lists from approved miner submissions.
 
-**Data Flow**: Miners generate leads → Validators audit and score → Approved leads are available for buyers via API.
+**Data Flow**: Buyers submit a query → Miners generate leads → Validators audit and score → Highest scoring list is delivered to Buyer.
 
 **Token**: TAO is used for staking, rewards, and (future) lead purchases.
 
@@ -20,7 +20,7 @@ LeadPoet leverages Bittensor's decentralized architecture to deliver a scalable,
 
 - **Hardware**: 16GB RAM, 4-core CPU, 100GB SSD.
 - **Software**: Python 3.9+, Bittensor CLI.
-- **TAO Wallet**: Required for staking and network participation.
+- **TAO Wallet**: Required for staking, rewards, and (future) lead purchases.
 
 ### Installation
 
@@ -42,6 +42,8 @@ pip install .
 
 Note: This installs all dependencies listed in setup.py, including bittensor, requests, numpy, etc.
 
+**Configure Your Wallet**: Use (`btcli wallet create`) to create a TAO wallet and stake sufficient TAO.
+
 **Set API Keys (Optional for Miners)**:
 
 To enable real lead generation using Hunter.io and Clearbit, set these environment variables:
@@ -49,52 +51,30 @@ To enable real lead generation using Hunter.io and Clearbit, set these environme
 export HUNTER_API_KEY=your_hunter_api_key
 export CLEARBIT_API_KEY=your_clearbit_api_key
 ```
-These are utilized in miner_models/get_leads.py for fetching authentic leads.
+These are utilized in miner_models/get_leads.py for determining lead authenticity.
 
-**Configure Your Wallet**:
-
-Set up a TAO wallet using the Bittensor CLI (`btcli wallet create`) and ensure it has sufficient TAO for staking.
 
 ## For Miners
 
-### How to Participate
+### Participation Requirements
+Miners must stake at least 2 TAO to begin submitting leads: 
+Use (`btcli stake --amount 2 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
 
-Miners run neurons that respond to queries from validators or the API by generating lead batches.
+Miners must register as a miner to respond to queries: 
+Use (`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
 
-**Set Up Your Wallet and Stake TAO**:
-
-Register your wallet on the Bittensor network and stake at least 8 TAO:
-```bash
-btcli stake --amount 8 --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name
-```
-
-**Run the Miner Neuron**:
-
-Start your miner with:
+### Lead Generation & Monitoring
+Run your miner:
 ```bash
 leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
-Replace `your_wallet_name` and `your_hotkey_name` with your wallet credentials.
+Add (`--use_open_source_lead_model`) to use Leadpoet's open-source miner framework (optional). The miner framework requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
 
-`--netuid 343` specifies the LeadPoet subnet; adjust if different.
+Miners respond to buyer queries with lead batches. Logs show validator activity, query details, and maximum response times (must be within 2 minutes + 2 seconds per lead).
 
-**Enable Open-Source Lead Generation (Optional)**:
+### Lead Format (JSON):
+Leads must follow the structured JSON format below:
 
-To generate real leads instead of dummy data:
-```bash
-leadpoet --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343 --use_open_source_lead_model
-```
-Requires `HUNTER_API_KEY` and `CLEARBIT_API_KEY` to be set.
-
-**Monitor Your Miner**:
-
-The miner listens for LeadRequest queries from validators or the API and responds with lead batches.
-
-Check logs for query details and response times (must be within 122 seconds: 2 minutes + 2 seconds per lead).
-
-### Lead Format
-
-Leads should follow this JSON structure:
 ```json
 {
     "Business": "Company Inc.",
@@ -108,59 +88,45 @@ Leads should follow this JSON structure:
     "Region": "US"
 }
 ```
+### Miner Incentives
 
-### Incentives
+Miner performance is continuously evaluated to ensure that buyers receive high-quality, conversion-ready leads.
 
-**Accuracy Score (G_i)**: Calculated over a rolling 3-month period:
-- Recent (T-14 to T-0 days): 50% weight.
-- Mid-term (T-30 to T-14 days): 20% weight.
-- Long-term (T-90 to T-30 days): 30% weight.
+**Accuracy Score (A_m)**: Reflects miner (m) quality of submitted leads over time:
+- Recent (previous 14 days): 55% weight
+- Mid-term (previous 30 days): 25% weight
+- Long-term (previous 90 days): 20% weight
 
-Formula: $G_i = 0.5 \times \text{Recent Accuracy} + 0.2 \times \text{Mid-term Accuracy} + 0.3 \times \text{Long-term Accuracy}$
+**Dependability (D_m)**: Reflects miner (m) reliability:
+- Based on uptime: # of buyer queries responded to with valid leads divided by total # of received queries.
+- Weighted by same 14/30/90-day proportions
 
-Accuracy = (Good Leads / Total Leads) per period.
+**Miner Weight (W_m)**: `W_m = A_m × D_m`
 
-**Consistency Multiplier (C_i)**: Based on uptime (queries responded to accurately):
+**Rewards (M_m)**: Proportional share of total miner emissions:
+- Only miners with `A_m > 0.5` receive emissions
+- `M_m = M × (W_m / Σ W_m)` where `M` is total miner emissions
 
-$C_i = \min(1 + \frac{\text{Uptime %}}{100}, 2.0)$
-
-E.g., 90% uptime → $C_i = 1.9$.
-
-**Weighted Score (W_i)**: $W_i = G_i \times C_i$.
-
-**Rewards**: Proportional to $W_i$ relative to all miners' weighted scores:
-
-$\text{Reward}_i = E \times \frac{W_i}{\sum W_j}$, where ($E$) is total emissions.
-
-**Tips**: Provide accurate emails, relevant industries/regions, and maintain high uptime to maximize rewards.
+**Best Practices**: Focus on accurate contact data, align with requested industry and region, and maintain high uptime to improve performance scores and maximize rewards.
 
 ## For Validators
 
-### How to Participate
+### Participation Requirements
+Validators must stake at least 20 TAO to begin scoring leads: 
+Use (`btcli stake --amount 20 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
+Validators must register to score leads: 
+Use (`btcli subnet register --netuid 343 --subtensor.network test --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
 
-Validators audit miner submissions to ensure quality and assign rewards.
+### Running a Validator
 
-**Set Up Your Wallet and Stake TAO**:
-
-Register your wallet and stake sufficient TAO (amount varies; aim for competitive staking).
-
-**Run the Validator Neuron**:
-
-Start your validator with:
 ```bash
 leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343
 ```
-
-**Enable Open-Source Validation (Optional)**:
-
-Use the open-source validation model:
-```bash
-leadpoet-validate --wallet.name your_wallet_name --wallet.hotkey your_hotkey_name --netuid 343 --use_open_source_validator_model
-```
+Add (`--use_open_source_validator_model`) to use Leadpoet's open-source validation framework (optional).
 
 **Monitor Your Validator**:
 
-Queries miners for batches (default 10 leads), validates within 2 minutes, and assigns scores.
+Validators receive lead batches, sample a percentage based on miner accuracy, complete validation within 2 minutes, and assign `O_v` scores.
 
 Logs show validation results and reward assignments.
 
@@ -168,37 +134,48 @@ Logs show validation results and reward assignments.
 
 **Pre-Check (~30s)**: Automated script checks format, duplicates (via validator_models/automated_checks.py).
 
-**Audit (~2 min)**: Sample 20% of leads (e.g., 20/100):
+**Audit (~2 min)**: Sample percentage dynamically adjusts based on miner accuracy—ranging from 10% for high performers to 50% for low performers. For example, mid-range miners may have 30 out of 100 leads sampled.
+- Relevance: Matches industry/region filters.
 - Format: Regex (`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`) and email existence.
 - Accuracy: Checks for disposable domains and fakes.
-- Relevance: Matches industry/region filters.
 
-**Outcome**: Approve if ≥90% of sample is valid; reject otherwise.
+**Outcome**: Approve batches only if ≥90% of sampled leads meet format, accuracy, and relevance checks. Otherwise, the batch is rejected with penalty.
 
-### Incentives
+### Validator Incentives
 
-**Reputation Score (R_i)**:
-- Correct validation: +5 points.
-- Incorrect: -10 points.
-- Buyer feedback: -25 (rating 1), -10 (2-4), +2 (5-7), +10 (7-8), +15 (9-10).
-- Post-approval check failure: -20 points.
+**Final Output Score (F)**: Each validator’s `O_v` score is weighted by their Reputation (R_v > 15).  
+`F` = ∑ [O_v × (R_v / Rs_total)]
+Where `Rs_total = ∑ R_v` across all validators with `R_v > 15`.
+The lead list with the highest Final Output Score is sent to the buyer.
 
-**Consistency Factor (C_i)**: $C_i = 1 + 0.025 \times \text{Streak}_i$, capped at 2.0.
-Streak resets if accuracy <90%.
+**Precision (P_v)**: Reflects validation accuracy over time. Adjusted based on:
+- Correct validation: +10 (`O_v` within 10% of final score)
+- Incorrect validation: –15 (if invalid leads slip through)
+- Buyer feedback: up to +15 or –25
+- Dummy audit failure: –10
 
-**Weighted Reputation (W_i)**: $W_i = R_i \times C_i$.
-Validators with $R_i < 15$ receive no rewards.
+**Consistency (C_v)**: Reflects how often `O_v` is close to final `F`:
+- Recent (previous 14 days): 55% weight
+- Mid-term (previous 30 days): 25% weight
+- Long-term (previous 90 days): 20% weight
 
-**Rewards**: $\text{Reward}_i = E \times \frac{W_i}{\sum W_j}$.
+**Weighted Reputation (R_v)**: `R_v = P_v \times C_v \times F_v`.
+- Where `F_v = 1` unless the validator is flagged for collusion (then `F_v = 0`).
+
+
+**Rewards (V_v)**: Validators with `R_v > 15` receive a proportional share of validator emissions:
+- `V_v = V × (R_v / ∑ R_v)` for all validators with `R_v > 15` where `V` is total validator emissions
 
 ## For Buyers
 
+### Participation Requirements
+
+Buyers must stake at least 50 TAO to begin requesting leads: 
+Use (`btcli stake --amount 50 --wallet.name <your_coldkey> --wallet.hotkey <your_hotkey>`)
+
 ### Accessing Leads
 
-Buyers request leads via the API, receiving approved batches from miners.
-
-**Via UI (Future)**:
-Planned at leadpoet.com with USD/TAO payment options.
+Buyers request leads via the API and receive curated batches that have been validated for format, accuracy, and business relevance by the network. This ensures a higher likelihood of conversion compared to static lead databases or outdated directories. All leads are validated to ensure freshness, accuracy, and alignment with buyer targeting criteria.
 
 **Via API**:
 
@@ -231,15 +208,15 @@ Response example:
 ]
 ```
 
-Note: Lead quality depends on miner performance, validated by the network.
+Note: Lead quality is maintained through continuous validator scoring and performance audits of miner submissions.
 
 ## Technical Details
 
 ### Architecture
 
-- **Miners**: Respond to LeadRequest queries with lead batches (via neurons/miner.py).
+- **Miners**: Respond to buyer queries with lead batches (via neurons/miner.py).
 - **Validators**: Query miners, validate leads using validator_models/os_validator_model.py and automated_checks.py, assign rewards (via neurons/validator.py).
-- **Buyers**: Use Leadpoet/api/leadpoet_api.py to query top miners by stake.
+- **Buyers**: Use Leadpoet/api/leadpoet_api.py to query lead batches.
 
 ### API Endpoints
 
@@ -276,9 +253,9 @@ Note: Uses dummy data and a mock subtensor.
 
 ## Roadmap
 
-- **MVP**: Core lead generation, validation, and API access (this repo).
-- **Next**: Governance, compliance audits, trusted validator thresholds.
-- **Future**: Sharding, testnet deployment, UI for buyers.
+- **MVP**: Core lead generation, validation, and API access
+- **Next**: Governance voting, compliance auditing, trusted validator thresholds
+- **Future**: Sharding, mainnet launch, and a UI at leadpoet.com for lead querying, purchase, and feedback
 
 ## Support
 
