@@ -1,13 +1,15 @@
 import requests
 import os
 import random
+import json
 from urllib.parse import urlparse
 import asyncio
+import aiohttp
 import bittensor as bt
 
 HUNTER_API_KEY = os.getenv("HUNTER_API_KEY", "YOUR_HUNTER_API_KEY")
 CLEARBIT_API_KEY = os.getenv("CLEARBIT_API_KEY", "YOUR_CLEARBIT_API_KEY")
-COMPANY_LIST_URL = "https://raw.githubusercontent.com/Pranavmr100/Leadpoet/refs/heads/main/sampleleads.json"
+COMPANY_LIST_URL = "https://raw.githubusercontent.com/Pranavmr100/Sample-Leads/refs/heads/main/sampleleads.json"
 
 industry_keywords = {
     "Tech & AI": ["saas", "software", "cloud", "subscription", "platform", "app", "online", "hosted", "crm", "erp", "ai", "machine learning", "artificial intelligence", "automation", "data", "analytics", "predictive", "nlp", "robotics", "algorithm", "cybersecurity", "security", "privacy", "protection", "encryption", "firewall", "antivirus", "network", "tech", "digital", "systems", "computing", "internet", "agent", "API"],
@@ -62,6 +64,12 @@ async def assign_industry(name, website):
     return "Tech & AI"
 
 async def get_emails_hunter(domain):
+    # Skip Hunter.io API call in mock mode or if API key is unset
+    config = bt.config()
+    if getattr(config, 'mock', False) or not HUNTER_API_KEY or "YOUR_" in HUNTER_API_KEY:
+        bt.logging.debug(f"Skipping Hunter.io API call for domain {domain} (mock mode or invalid API key)")
+        return []
+    
     url = f"https://api.hunter.io/v2/domain-search?domain={domain}&api_key={HUNTER_API_KEY}"
     try:
         async with aiohttp.ClientSession() as session:
@@ -75,14 +83,31 @@ async def get_emails_hunter(domain):
         return []
 
 async def get_leads(num_leads: int, industry: str = None, region: str = None) -> list:
-    """Generate leads for LeadPoet miners."""
+    config = bt.config()
+    if getattr(config, 'mock', False) or not HUNTER_API_KEY or not CLEARBIT_API_KEY or "YOUR_" in [HUNTER_API_KEY, CLEARBIT_API_KEY]:
+        bt.logging.info("Mock mode or API keys not set, generating dummy leads")
+        return [
+            {
+                "Business": f"Mock Business {i}",
+                "Owner Full name": f"Owner {i}",
+                "First": f"First {i}",
+                "Last": f"Last {i}",
+                "Owner(s) Email": f"owner{i}@mockleadpoet.com",
+                "LinkedIn": f"https://linkedin.com/in/owner{i}",
+                "Website": f"https://business{i}.com",
+                "Industry": industry or "Tech & AI",
+                "Region": region or "Global"
+            } for i in range(1, num_leads + 1)
+        ]
+    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(COMPANY_LIST_URL, timeout=30) as response:
-                businesses = await response.json()
+                response.raise_for_status()
+                businesses = json.loads(await response.text())
                 random.shuffle(businesses)
     except Exception as e:
-        bt.logging.error(f"Error fetching business list: {e}")
+        bt.logging.error(f"Error fetching business list from {COMPANY_LIST_URL}: {e}")
         return []
 
     leads = []
@@ -93,6 +118,10 @@ async def get_leads(num_leads: int, industry: str = None, region: str = None) ->
         website = business.get("Website", "")
         assigned_industry = await assign_industry(name, website)
         if industry and assigned_industry.lower() != industry.lower():
+            continue
+        # Filter by region (Location in JSON)
+        business_region = business.get("Location", "")
+        if region and business_region.lower() != region.lower():
             continue
         domain = urlparse(website).netloc if website else ""
         if domain:
@@ -108,7 +137,7 @@ async def get_leads(num_leads: int, industry: str = None, region: str = None) ->
                 "LinkedIn": business.get("LinkedIn", ""),
                 "Website": website,
                 "Industry": assigned_industry,
-                "Region": region or "Unknown"
+                "Region": business_region or "Unknown"  # Map Location to Region
             }
             leads.append(lead)
     return leads
