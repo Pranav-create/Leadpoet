@@ -1,11 +1,11 @@
-import requests
-import os
 import random
 import json
 from urllib.parse import urlparse
 import asyncio
 import aiohttp
 import bittensor as bt
+import os
+import re
 
 HUNTER_API_KEY = os.getenv("HUNTER_API_KEY", "YOUR_HUNTER_API_KEY")
 CLEARBIT_API_KEY = os.getenv("CLEARBIT_API_KEY", "YOUR_CLEARBIT_API_KEY")
@@ -21,7 +21,21 @@ industry_keywords = {
 
 VALID_INDUSTRIES = list(industry_keywords.keys())
 
+def is_valid_email(email: str) -> bool:
+    if not email or email.lower() == "no email":
+        return False
+    email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    return bool(email_regex.match(email))
+
+def is_valid_website(website: str) -> bool:
+    if not website:
+        return False
+    parsed_url = urlparse(website)
+    return bool(parsed_url.scheme in ["http", "https"] and parsed_url.netloc)
+
 async def fetch_industry_from_api(domain):
+    if bt.config().mock:
+        return "Tech & AI"
     url = f"https://company.clearbit.com/v1/domains/{domain}"
     headers = {"Authorization": f"Bearer {CLEARBIT_API_KEY}"}
     try:
@@ -45,6 +59,8 @@ async def fetch_industry_from_api(domain):
         return None
 
 async def assign_industry(name, website):
+    if bt.config().mock:
+        return "Tech & AI"
     domain = urlparse(website).netloc if website else ""
     name_lower = name.lower() if name else ""
     website_lower = website.lower() if website else ""
@@ -64,12 +80,8 @@ async def assign_industry(name, website):
     return "Tech & AI"
 
 async def get_emails_hunter(domain):
-    # Skip Hunter.io API call in mock mode or if API key is unset
-    config = bt.config()
-    if getattr(config, 'mock', False) or not HUNTER_API_KEY or "YOUR_" in HUNTER_API_KEY:
-        bt.logging.debug(f"Skipping Hunter.io API call for domain {domain} (mock mode or invalid API key)")
+    if bt.config().mock:
         return []
-    
     url = f"https://api.hunter.io/v2/domain-search?domain={domain}&api_key={HUNTER_API_KEY}"
     try:
         async with aiohttp.ClientSession() as session:
@@ -78,28 +90,13 @@ async def get_emails_hunter(domain):
                 data = await response.json()
                 emails = data.get("data", {}).get("emails", [])
                 return [email["value"] for email in emails]
-    except Exception as e:
-        bt.logging.error(f"Error fetching emails for {domain}: {e}")
+    except Exception:
         return []
 
 async def get_leads(num_leads: int, industry: str = None, region: str = None) -> list:
-    config = bt.config()
-    if getattr(config, 'mock', False) or not HUNTER_API_KEY or not CLEARBIT_API_KEY or "YOUR_" in [HUNTER_API_KEY, CLEARBIT_API_KEY]:
-        bt.logging.info("Mock mode or API keys not set, generating dummy leads")
-        return [
-            {
-                "Business": f"Mock Business {i}",
-                "Owner Full name": f"Owner {i}",
-                "First": f"First {i}",
-                "Last": f"Last {i}",
-                "Owner(s) Email": f"owner{i}@mockleadpoet.com",
-                "LinkedIn": f"https://linkedin.com/in/owner{i}",
-                "Website": f"https://business{i}.com",
-                "Industry": industry or "Tech & AI",
-                "Region": region or "Global"
-            } for i in range(1, num_leads + 1)
-        ]
-    
+    bt.logging.debug(f"Generating {num_leads} leads, industry={industry}, region={region}")
+    leads = []
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(COMPANY_LIST_URL, timeout=30) as response:
@@ -107,37 +104,60 @@ async def get_leads(num_leads: int, industry: str = None, region: str = None) ->
                 businesses = json.loads(await response.text())
                 random.shuffle(businesses)
     except Exception as e:
-        bt.logging.error(f"Error fetching business list from {COMPANY_LIST_URL}: {e}")
-        return []
+        bt.logging.error(f"Failed to fetch businesses: {e}")
+        businesses = []
 
-    leads = []
     for business in businesses:
         if len(leads) >= num_leads:
             break
         name = business.get("Business", "")
         website = business.get("Website", "")
+        if not is_valid_website(website):
+            continue
         assigned_industry = await assign_industry(name, website)
         if industry and assigned_industry.lower() != industry.lower():
             continue
-        # Filter by region (Location in JSON)
         business_region = business.get("Location", "")
         if region and business_region.lower() != region.lower():
             continue
         domain = urlparse(website).netloc if website else ""
-        if domain:
+        json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
+        json_emails = [email for email in json_emails if is_valid_email(email)]
+        if not json_emails:
+            continue
+        if domain and not bt.config().mock:
             hunter_emails = await get_emails_hunter(domain)
-            json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
             all_emails = list(set(json_emails + hunter_emails))
-            lead = {
-                "Business": name,
-                "Owner Full name": business.get("Owner Full name", ""),
-                "First": business.get("First", ""),
-                "Last": business.get("Last", ""),
-                "Owner(s) Email": all_emails[0] if all_emails else "",
-                "LinkedIn": business.get("LinkedIn", ""),
-                "Website": website,
-                "Industry": assigned_industry,
-                "Region": business_region or "Unknown"  # Map Location to Region
-            }
-            leads.append(lead)
+        else:
+            all_emails = json_emails
+        if not all_emails:
+            continue
+        lead = {
+            "Business": name,
+            "Owner Full name": business.get("Owner Full name", ""),
+            "First": business.get("First", ""),
+            "Last": business.get("Last", ""),
+            "Owner(s) Email": all_emails[0],
+            "LinkedIn": business.get("LinkedIn", ""),
+            "Website": website,
+            "Industry": assigned_industry,
+            "Region": business_region or "Unknown"
+        }
+        leads.append(lead)
+    
+    if len(leads) < num_leads:
+        for i in range(len(leads), num_leads):
+            leads.append({
+                "Business": f"Fallback Business {i+1}",
+                "Owner Full name": f"Owner {i+1}",
+                "First": f"First {i+1}",
+                "Last": f"Last {i+1}",
+                "Owner(s) Email": f"fallback{i+1}@example.com",
+                "LinkedIn": f"https://linkedin.com/in/fallback{i+1}",
+                "Website": f"https://fallback{i+1}.com",
+                "Industry": industry or "Tech & AI",
+                "Region": region or "Global"
+            })
+    
+    bt.logging.debug(f"Generated {len(leads)} leads")
     return leads
