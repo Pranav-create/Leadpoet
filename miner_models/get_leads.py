@@ -7,6 +7,15 @@ import bittensor as bt
 import os
 import re
 
+# Only import Firecrawl if we're in a miner context (not validator)
+# This prevents the validator from asking for Firecrawl API keys
+try:
+    from miner_models.firecrawl_sourcing import get_firecrawl_leads 
+    FIRECRAWL_AVAILABLE = True
+except ImportError:
+    FIRECRAWL_AVAILABLE = False
+    get_firecrawl_leads = None
+
 HUNTER_API_KEY = os.getenv("HUNTER_API_KEY", "YOUR_HUNTER_API_KEY")
 CLEARBIT_API_KEY = os.getenv("CLEARBIT_API_KEY", "YOUR_CLEARBIT_API_KEY")
 COMPANY_LIST_URL = "https://raw.githubusercontent.com/Pranavmr100/Sample-Leads/refs/heads/main/sampleleads.json"
@@ -95,69 +104,119 @@ async def get_emails_hunter(domain):
 
 async def get_leads(num_leads: int, industry: str = None, region: str = None) -> list:
     bt.logging.debug(f"Generating {num_leads} leads, industry={industry}, region={region}")
+
+    # ------------------------------------------------------------------
+    # 1) Try the Firecrawl sourcing pipeline first
+    # ------------------------------------------------------------------
+    print("🚀 Trying Firecrawl sourcing model...", flush=True)
+    try:
+        fc_leads = await get_firecrawl_leads(num_leads, industry, region)
+        if len(fc_leads) >= num_leads:
+            print(f"✅ Firecrawl sourcing model produced {len(fc_leads)} leads", flush=True)
+            bt.logging.info(f"Firecrawl sourcing produced {len(fc_leads)} leads")
+            return fc_leads
+        else:
+            print(f"ℹ️  Firecrawl produced {len(fc_leads)} leads; topping up with legacy database",
+                  flush=True)
+            bt.logging.info(f"Firecrawl produced only {len(fc_leads)} leads, topping up")
+            
+            # SHOW THE FIRECRAWL LEADS THAT WERE FOUND
+            if fc_leads:
+                print(f"📋 Firecrawl leads found:")
+                for i, lead in enumerate(fc_leads, 1):
+                    business = lead.get('Business', 'Unknown')
+                    owner = lead.get('Owner Full name', 'Unknown')
+                    email = lead.get('Owner(s) Email', 'No email')
+                    print(f"  {i}. {business} - {owner} ({email})")
+                print()
+    except Exception as e:
+        # Only fall back to legacy if there's a critical error (API keys missing, etc.)
+        # Not if individual domains fail
+        if "api_key_missing" in str(e) or "not available" in str(e):
+            print(f"⚠️  Critical error with Firecrawl sourcing ({e}); defaulting to legacy database", flush=True)
+            bt.logging.warning(f"Critical Firecrawl error: {e}")
+        else:
+            print(f"⚠️  Non-critical error with Firecrawl sourcing ({e}); continuing with available leads", flush=True)
+            bt.logging.warning(f"Non-critical Firecrawl error: {e}")
+            # Return whatever leads we have instead of falling back
+            if 'fc_leads' in locals() and fc_leads:
+                return fc_leads
+
+    # ------------------------------------------------------------------
+    # 2) Legacy JSON fallback (only if Firecrawl completely failed)
+    # ------------------------------------------------------------------
     leads = []
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(COMPANY_LIST_URL, timeout=30) as response:
-                response.raise_for_status()
-                businesses = json.loads(await response.text())
-                random.shuffle(businesses)
-    except Exception as e:
-        bt.logging.error(f"Failed to fetch businesses: {e}")
-        businesses = []
+    # If we have Firecrawl leads, start with those
+    if 'fc_leads' in locals() and fc_leads:
+        leads.extend(fc_leads)
+        print(f"📥 Added {len(fc_leads)} Firecrawl leads to total")
 
-    for business in businesses:
-        if len(leads) >= num_leads:
-            break
-        name = business.get("Business", "")
-        website = business.get("Website", "")
-        if not is_valid_website(website):
-            continue
-        assigned_industry = await assign_industry(name, website)
-        if industry and assigned_industry.lower() != industry.lower():
-            continue
-        business_region = business.get("Location", "")
-        if region and business_region.lower() != region.lower():
-            continue
-        domain = urlparse(website).netloc if website else ""
-        json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
-        json_emails = [email for email in json_emails if is_valid_email(email)]
-        if not json_emails:
-            continue
-        if domain and not bt.config().mock:
-            hunter_emails = await get_emails_hunter(domain)
-            all_emails = list(set(json_emails + hunter_emails))
-        else:
-            all_emails = json_emails
-        if not all_emails:
-            continue
-        lead = {
-            "Business": name,
-            "Owner Full name": business.get("Owner Full name", ""),
-            "First": business.get("First", ""),
-            "Last": business.get("Last", ""),
-            "Owner(s) Email": all_emails[0],
-            "LinkedIn": business.get("LinkedIn", ""),
-            "Website": website,
-            "Industry": assigned_industry,
-            "Region": business_region or "Unknown"
-        }
-        leads.append(lead)
-    
-    if len(leads) < num_leads:
-        for i in range(len(leads), num_leads):
-            leads.append({
-                "Business": f"Fallback Business {i+1}",
-                "Owner Full name": f"Owner {i+1}",
-                "First": f"First {i+1}",
-                "Last": f"Last {i+1}",
-                "Owner(s) Email": f"fallback{i+1}@example.com",
-                "LinkedIn": f"https://linkedin.com/in/fallback{i+1}",
-                "Website": f"https://fallback{i+1}.com",
-                "Industry": industry or "Tech & AI",
-                "Region": region or "Global"
-            })
+    # Only use legacy if we have no Firecrawl leads at all
+    if not leads:
+        print("ℹ️  No Firecrawl leads available, using legacy database...")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(COMPANY_LIST_URL, timeout=30) as response:
+                    response.raise_for_status()
+                    businesses = json.loads(await response.text())
+                    random.shuffle(businesses)
+        except Exception as e:
+            bt.logging.error(f"Failed to fetch businesses: {e}")
+            businesses = []
+
+        for business in businesses:
+            if len(leads) >= num_leads:
+                break
+            name = business.get("Business", "")
+            website = business.get("Website", "")
+            if not is_valid_website(website):
+                continue
+            assigned_industry = await assign_industry(name, website)
+            if industry and assigned_industry.lower() != industry.lower():
+                continue
+            business_region = business.get("Location", "")
+            if region and business_region.lower() != region.lower():
+                continue
+            domain = urlparse(website).netloc if website else ""
+            json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
+            json_emails = [email for email in json_emails if is_valid_email(email)]
+            if not json_emails:
+                continue
+            if domain and not bt.config().mock:
+                hunter_emails = await get_emails_hunter(domain)
+                all_emails = list(set(json_emails + hunter_emails))
+            else:
+                all_emails = json_emails
+            if not all_emails:
+                continue
+            lead = {
+                "Business": name,
+                "Owner Full name": business.get("Owner Full name", ""),
+                "First": business.get("First", ""),
+                "Last": business.get("Last", ""),
+                "Owner(s) Email": all_emails[0],
+                "LinkedIn": business.get("LinkedIn", ""),
+                "Website": website,
+                "Industry": assigned_industry,
+                "Region": business_region or "Unknown"
+            }
+            leads.append(lead)
+        
+        if len(leads) < num_leads:
+            for i in range(len(leads), num_leads):
+                leads.append({
+                    "Business": f"Fallback Business {i+1}",
+                    "Owner Full name": f"Owner {i+1}",
+                    "First": f"First {i+1}",
+                    "Last": f"Last {i+1}",
+                    "Owner(s) Email": f"fallback{i+1}@example.com",
+                    "LinkedIn": f"https://linkedin.com/in/fallback{i+1}",
+                    "Website": f"https://fallback{i+1}.com",
+                    "Industry": industry or "Tech & AI",
+                    "Region": region or "Global"
+                })
     
     bt.logging.debug(f"Generated {len(leads)} leads")
     return leads
