@@ -155,68 +155,68 @@ async def get_leads(num_leads: int, industry: str = None, region: str = None) ->
     # Only use legacy if we have no Firecrawl leads at all
     if not leads:
         print("ℹ️  No Firecrawl leads available, using legacy database...")
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(COMPANY_LIST_URL, timeout=30) as response:
-                    response.raise_for_status()
-                    businesses = json.loads(await response.text())
-                    random.shuffle(businesses)
-        except Exception as e:
-            bt.logging.error(f"Failed to fetch businesses: {e}")
-            businesses = []
 
-        for business in businesses:
-            if len(leads) >= num_leads:
-                break
-            name = business.get("Business", "")
-            website = business.get("Website", "")
-            if not is_valid_website(website):
-                continue
-            assigned_industry = await assign_industry(name, website)
-            if industry and assigned_industry.lower() != industry.lower():
-                continue
-            business_region = business.get("Location", "")
-            if region and business_region.lower() != region.lower():
-                continue
-            domain = urlparse(website).netloc if website else ""
-            json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
-            json_emails = [email for email in json_emails if is_valid_email(email)]
-            if not json_emails:
-                continue
-            if domain and not bt.config().mock:
-                hunter_emails = await get_emails_hunter(domain)
-                all_emails = list(set(json_emails + hunter_emails))
-            else:
-                all_emails = json_emails
-            if not all_emails:
-                continue
-            lead = {
-                "Business": name,
-                "Owner Full name": business.get("Owner Full name", ""),
-                "First": business.get("First", ""),
-                "Last": business.get("Last", ""),
-                "Owner(s) Email": all_emails[0],
-                "LinkedIn": business.get("LinkedIn", ""),
-                "Website": website,
-                "Industry": assigned_industry,
-                "Region": business_region or "Unknown"
-            }
-            leads.append(lead)
-        
-        if len(leads) < num_leads:
-            for i in range(len(leads), num_leads):
-                leads.append({
-                    "Business": f"Fallback Business {i+1}",
-                    "Owner Full name": f"Owner {i+1}",
-                    "First": f"First {i+1}",
-                    "Last": f"Last {i+1}",
-                    "Owner(s) Email": f"fallback{i+1}@example.com",
-                    "LinkedIn": f"https://linkedin.com/in/fallback{i+1}",
-                    "Website": f"https://fallback{i+1}.com",
-                    "Industry": industry or "Tech & AI",
-                    "Region": region or "Global"
-                })
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(COMPANY_LIST_URL, timeout=30) as response:
+                response.raise_for_status()
+                businesses = json.loads(await response.text())
+                random.shuffle(businesses)
+    except Exception as e:
+        bt.logging.error(f"Failed to fetch businesses: {e}")
+        businesses = []
+
+    for business in businesses:
+        if len(leads) >= num_leads:
+            break
+        name = business.get("Business", "")
+        website = business.get("Website", "")
+        if not is_valid_website(website):
+            continue
+        assigned_industry = await assign_industry(name, website)
+        if industry and assigned_industry.lower() != industry.lower():
+            continue
+        business_region = business.get("Location", "")
+        if region and business_region.lower() != region.lower():
+            continue
+        domain = urlparse(website).netloc if website else ""
+        json_emails = business.get("Owner(s) Email", "").split("/") if business.get("Owner(s) Email") else []
+        json_emails = [email for email in json_emails if is_valid_email(email)]
+        if not json_emails:
+            continue
+        if domain and not bt.config().mock:
+            hunter_emails = await get_emails_hunter(domain)
+            all_emails = list(set(json_emails + hunter_emails))
+        else:
+            all_emails = json_emails
+        if not all_emails:
+            continue
+        lead = {
+            "Business": name,
+            "Owner Full name": business.get("Owner Full name", ""),
+            "First": business.get("First", ""),
+            "Last": business.get("Last", ""),
+            "Owner(s) Email": all_emails[0],
+            "LinkedIn": business.get("LinkedIn", ""),
+            "Website": website,
+            "Industry": assigned_industry,
+            "Region": business_region or "Unknown"
+        }
+        leads.append(lead)
+    
+    if len(leads) < num_leads:
+        for i in range(len(leads), num_leads):
+            leads.append({
+                "Business": f"Fallback Business {i+1}",
+                "Owner Full name": f"Owner {i+1}",
+                "First": f"First {i+1}",
+                "Last": f"Last {i+1}",
+                "Owner(s) Email": f"fallback{i+1}@example.com",
+                "LinkedIn": f"https://linkedin.com/in/fallback{i+1}",
+                "Website": f"https://fallback{i+1}.com",
+                "Industry": industry or "Tech & AI",
+                "Region": region or "Global"
+            })
     
     bt.logging.debug(f"Generated {len(leads)} leads")
     return leads
