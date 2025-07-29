@@ -34,8 +34,14 @@ export FIRECRAWL_API_KEY=your_firecrawl_api_key
 # Required for miners using OpenRouter LLM classification
 export OPENROUTER_API_KEY=your_openrouter_api_key
 
+# Required for reading leads from cloud DB
+export  LEAD_API="https://leadpoet-api-511161415764.us-central1.run.app"
+
 # Required for validators using Hunter.io email verification
 export HUNTER_API_KEY=your_hunter_api_key
+
+# Required for writing leads to cloud DB
+export  LEAD_API="https://leadpoet-api-511161415764.us-central1.run.app"
 
 # Required for validators using Mailgun email validation
 export MAILGUN_API_KEY=your_mailgun_api_key
