@@ -1,6 +1,6 @@
 # LeadPoet | Premium Sales Leads Powered by Bittensor
 
-Welcome to LeadPoet, a decentralized prospect generation subnet built on Bittensor, with an initial focus on SMB sales agencies seeking high-quality, conversion-ready sales leads.
+Welcome to LeadPoet, a decentralized prospect generation subnet built on Bittensor.
 
 ## Overview
 
