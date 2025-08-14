@@ -217,9 +217,7 @@ Post-validation checks ensure prospect quality:
 
 1. **Invalid Prospect Check**: Detects duplicates, invalid emails, or incorrect formats. If failed, batch score resets to 0, and validator reputation decreases (-20 points).
 
-2. **Collusion Check**: Analyzes buyer feedback and validator scoring patterns using PyGOD and DBScan.
-   - Collusion Score (V_c) ≥ 0.7 flags validators
-   - Penalty: If V_c ≥ 0.7, F_v is set to 0 for 90 days, disabling emissions. Affected buyers are also temporarily restricted from submitting queries.
+
 
 ## Technical Details
 
