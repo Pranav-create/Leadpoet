@@ -6,6 +6,7 @@ import aiohttp
 import bittensor as bt
 import os
 import re
+from Leadpoet.base.utils import safe_json_load
 
 # Only import Firecrawl if we're in a miner context (not validator)
 # This prevents the validator from asking for Firecrawl API keys
@@ -160,7 +161,7 @@ async def get_leads(num_leads: int, industry: str = None, region: str = None) ->
         async with aiohttp.ClientSession() as session:
             async with session.get(COMPANY_LIST_URL, timeout=30) as response:
                 response.raise_for_status()
-                businesses = json.loads(await response.text())
+                businesses = safe_json_load(await response.text())
                 random.shuffle(businesses)
     except Exception as e:
         bt.logging.error(f"Failed to fetch businesses: {e}")
