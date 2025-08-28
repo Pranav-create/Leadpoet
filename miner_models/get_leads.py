@@ -1,3 +1,5 @@
+#LEGACY MODEL - Use Lead_sorcerer_main for Production, this should only be used for testing locally
+
 import random
 import json
 from urllib.parse import urlparse
