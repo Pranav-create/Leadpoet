@@ -36,7 +36,7 @@ load_dotenv()
 # Only import Firecrawl if we're in a miner context (not validator)
 # This prevents the validator from asking for Firecrawl API keys
 try:
-    FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+    FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_KEY")
     FIRECRAWL_AVAILABLE = bool(FIRECRAWL_API_KEY and FIRECRAWL_API_KEY.strip())
 except ImportError:
     FIRECRAWL_AVAILABLE = False
@@ -44,7 +44,7 @@ except ImportError:
 HUNTER_API_KEY = os.getenv("HUNTER_API_KEY", "YOUR_HUNTER_API_KEY")
 CLEARBIT_API_KEY = os.getenv("CLEARBIT_API_KEY", "YOUR_CLEARBIT_API_KEY")
 COMPANY_LIST_URL = "https://raw.githubusercontent.com/Pranavmr100/Sample-Leads/refs/heads/main/sampleleads.json"
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_KEY")
 
 # Firecrawl headers
 if FIRECRAWL_AVAILABLE:
